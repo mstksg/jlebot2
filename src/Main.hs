@@ -1,14 +1,14 @@
 module Main where
 
 import System.Environment
-import Backend.StdIn
+import Auto.Chatbot.Backend.Stdin
 import Module.Karma
-import Types
+import Auto.Chatbot
 
 main :: IO ()
 main = do
     modes <- getArgs
-    stdinLoopChron 1000000 chatbot
+    stdinLoopChron "justin" "#stdin" 1000000 chatbot
     -- if "irc" `elem` modes
     --   then undefined
     --   else stdinLoop chatbot

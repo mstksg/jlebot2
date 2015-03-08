@@ -3,12 +3,12 @@
 
 module Module.Karma (karmaBot) where
 
+import Auto.Chatbot
 import Control.Auto
 import Control.Auto.Blip
 import Data.Foldable
 import Data.List
 import Prelude hiding     ((.), id)
-import Types
 import qualified Data.Map as M
 
 karmaBot :: Monad m => ChatBotRoom m
@@ -34,7 +34,7 @@ karmaBot = proc (InMessage nick msg _ _) -> do
     id -< lookupKarma <$> queryBlip
   where
     addToMap :: M.Map Nick Int -> [(Nick, Int)] -> M.Map Nick Int
-    addToMap mp updates = M.unionWith (+) mp (M.fromList updates)
+    addToMap mp updates = M.unionWith (+) mp (M.fromListWith (+) updates)
 
 karmaCommand :: Message -> Maybe Nick
 karmaCommand message = case words message of

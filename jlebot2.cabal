@@ -24,6 +24,7 @@ executable jlebot2
                      , auto
                      , time
                      , containers
+                     , auto-chatbot
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:         -Wall -O2
