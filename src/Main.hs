@@ -8,9 +8,10 @@ import Types
 main :: IO ()
 main = do
     modes <- getArgs
-    if "irc" `elem` modes
-      then undefined
-      else stdinLoop chatbot
+    stdinLoopChron 1000000 chatbot
+    -- if "irc" `elem` modes
+    --   then undefined
+    --   else stdinLoop chatbot
 
 chatbot :: Monad m => ChatBot m
 chatbot = fromRoom karmaBot
