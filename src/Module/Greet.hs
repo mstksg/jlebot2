@@ -7,28 +7,37 @@ import Auto.Chatbot
 import Control.Auto
 import Control.Auto.Blip
 import Control.Auto.Collection
-import Control.Auto.Process.Random
+import Control.Auto.Effects
+import Control.Monad.Random
+import Control.Monad.Trans.State
 import Data.List
+import Data.Serialize
 import Data.Time
-import Instances                   ()
-import Prelude hiding              ((.), id)
-import System.Random
+import Instances                 ()
+import Prelude hiding            ((.), id)
 
 memory :: NominalDiffTime
-memory = 1 * (24 * 60 * 60)
+memory = 30 * (24 * 60 * 60)
 
-greetBot :: Monad m => ChatBotRoom m
-greetBot = proc (InMessage nick msg _ t) -> do
-    greetBlip <- emitOn isGreeting -< msg
-    perBlip (mux individualGreetBot) -< (nick, t) <$ greetBlip
+greetBot :: Monad m => StdGen -> ChatBotRoom m
+greetBot = sealRandom greetBotRandom
   where
+    greetBotRandom :: Monad m => ChatBotRoom (RandT StdGen m)
+    greetBotRandom = proc (InMessage nick msg _ time) -> do
+      greetBlip <- emitOn isGreeting -< msg
+      perBlip (mux individualGreetBot) -< (nick, time) <$ greetBlip
+
+    isGreeting :: Message -> Bool
     isGreeting str = "jlebot" `isInfixOf` str && hasGreeting str
 
-    individualGreetBot :: Monad m => Nick -> Auto m UTCTime [Message]
+    individualGreetBot :: Monad m
+                       => Nick
+                       -> Auto (RandT StdGen m) UTCTime [Message]
     individualGreetBot nick = proc time -> do
         history <- accum addHistory [] -< time
         let greetingPool = personalizedGreetings !! min (length history `div` 3) 3
-        (:[]) <$> arrRandStd choice (mkStdGen 0) -< greetingPool
+        greeting <- arrM uniform -< greetingPool
+        id -< [greeting]
       where
         personalizedGreetings = greetings nick
 
@@ -37,9 +46,11 @@ greetBot = proc (InMessage nick msg _ t) -> do
       where
         notOld oldEvent = diffUTCTime newEvent oldEvent <= memory
 
-choice :: [a] -> StdGen -> (a, StdGen)
-choice xs g = let (i, g') = randomR (0, length xs - 1) g
-              in  (xs !! i, g')
+    sealRandom :: (Monad m, RandomGen g, Serialize g)
+               => Auto (RandT g m) a b
+               -> g
+               -> Auto m a b
+    sealRandom = sealState . hoistA (StateT . runRandT)
 
 hasGreeting :: String -> Bool
 hasGreeting (words -> strwords) =
