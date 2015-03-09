@@ -7,14 +7,12 @@ import Auto.Chatbot
 import Control.Auto
 import Control.Auto.Blip
 import Control.Auto.Collection
-import Control.Auto.Effects
 import Control.Monad.Random
-import Control.Monad.Trans.State
 import Data.List
-import Data.Serialize
 import Data.Time
-import Instances                 ()
-import Prelude hiding            ((.), id)
+import Instances               ()
+import Prelude hiding          ((.), id)
+import Util
 
 memory :: NominalDiffTime
 memory = 30 * (24 * 60 * 60)
@@ -35,7 +33,8 @@ greetBot = sealRandom greetBotRandom
                        -> Auto (RandT StdGen m) UTCTime [Message]
     individualGreetBot nick = proc time -> do
         history <- accum addHistory [] -< time
-        let greetingPool = personalizedGreetings !! min (length history `div` 3) 3
+        let greetingClass = min 3 (length history `div` 3)
+            greetingPool = personalizedGreetings !! greetingClass
         greeting <- arrM uniform -< greetingPool
         id -< [greeting]
       where
@@ -45,12 +44,6 @@ greetBot = sealRandom greetBotRandom
     addHistory oldEvents newEvent = newEvent : takeWhile notOld oldEvents
       where
         notOld oldEvent = diffUTCTime newEvent oldEvent <= memory
-
-    sealRandom :: (Monad m, RandomGen g, Serialize g)
-               => Auto (RandT g m) a b
-               -> g
-               -> Auto m a b
-    sealRandom = sealState . hoistA (StateT . runRandT)
 
 hasGreeting :: String -> Bool
 hasGreeting (words -> strwords) =
