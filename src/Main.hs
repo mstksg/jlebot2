@@ -7,8 +7,9 @@ import Control.Applicative
 import Control.Auto.Serialize
 import Data.Monoid
 import Module.Greet
-import System.Directory
 import Module.Karma
+import Module.Markov
+import System.Directory
 import System.Environment
 import System.FilePath
 import System.Random
@@ -37,10 +38,12 @@ main = do
                                 (chatbot' "stdin")
 
 chatbot :: StdGen -> FilePath -> ChatBot IO
-chatbot g rt = mconcat [ "karma" <~ fromRoom karmaBot
-                       , "greet" <~ fromRoom (greetBot g)
+chatbot g rt = mconcat [ "karma"  <~ fromRoom karmaBot
+                       , "greet"  <~ fromRoom (greetBot g)
+                       , fromRoom (markovBot (pth "markov") g)
                        ]
   where
-    ext <~ cb = serializing' (saveFolder </> (rt ++ "-" ++ ext)) cb
+    pth ext = saveFolder </> (rt ++ "-" ++ ext)
+    ext <~ cb = serializing' (pth ext) cb
 
 
