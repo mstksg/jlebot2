@@ -25,6 +25,8 @@ executable jlebot2
                      , time
                      , containers
                      , auto-chatbot
+                     , random
+                     , cereal
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options:         -Wall -O2

@@ -8,8 +8,8 @@ import Control.Auto
 import Control.Auto.Blip
 import Data.Foldable
 import Data.List
-import Prelude hiding     ((.), id)
-import qualified Data.Map as M
+import Prelude hiding            ((.), id)
+import qualified Data.Map.Strict as M
 
 karmaBot :: Monad m => ChatBotRoom m
 karmaBot = proc (InMessage nick msg _ _) -> do

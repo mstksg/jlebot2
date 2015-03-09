@@ -1,10 +1,12 @@
 module Main where
 
-import System.Environment
-import Auto.Chatbot.Backend.Stdin
-import Auto.Chatbot.Backend.IRC
-import Module.Karma
 import Auto.Chatbot
+import Auto.Chatbot.Backend.IRC
+import Auto.Chatbot.Backend.Stdin
+import Data.Monoid
+import Module.Greet
+import Module.Karma
+import System.Environment
 
 channels :: [Channel]
 channels = ["#jlebot-test","#ucsd","#haskell-auto"]
@@ -15,7 +17,8 @@ main =
     -- stdinLoopChron "justin" "#stdin" 1000000 chatbot
 
 chatbot :: Monad m => ChatBot m
-chatbot = fromRoom karmaBot
-
+chatbot = mconcat [ fromRoom karmaBot
+                  , fromRoom greetBot
+                  ]
 
 
