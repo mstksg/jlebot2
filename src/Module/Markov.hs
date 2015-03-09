@@ -38,6 +38,8 @@ markovBot fp = sealRandom markovBotRandom
   where
     markovBotRandom :: MonadIO m => ChatBotRoom (RandT StdGen m)
     markovBotRandom = proc (InMessage nick msg _ _) -> do
+      -- serializing the map alone instead of the whole structure, in case
+      -- we want to modify markovBot and don't want to lose the history
       trainings <- serializing' fp $ gather (const train) -< (nick, msg)
 
       queryBlip <- emitJusts markovCommand -< msg
