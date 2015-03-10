@@ -1,11 +1,14 @@
 module Main where
 
+-- import Module.Bet
+-- import Module.RSS
 import Auto.Chatbot
 import Auto.Chatbot.Backend.IRC
 import Auto.Chatbot.Backend.Stdin
 import Control.Applicative
 import Control.Auto.Serialize
 import Data.Monoid
+import Module.Github
 import Module.Greet
 import Module.Karma
 import Module.Markov
@@ -32,6 +35,8 @@ main = do
                          True
                          1000000
                          (chatbot' "irc")
+      -- "test":_ -> putStrLn =<< getLatest testFeed
+      "test":_ -> print =<< getPushes (Repo "mstksg" "auto") 595524856
       _       -> stdinLoopChron "justin"
                                 "#stdin"
                                 1000000
@@ -39,8 +44,10 @@ main = do
 
 chatbot :: StdGen -> FilePath -> ChatBot IO
 chatbot g rt = mconcat [ "karma"  <~ fromRoom karmaBot
+                       -- , "bet"    <~ fromRoom betBot
                        , "greet"  <~ fromRoom (greetBot g)
                        , fromRoom (markovBot (pth "markov") g)
+                       , fromChron (githubBot (pth "github"))
                        ]
   where
     pth ext = saveFolder </> (rt ++ "-" ++ ext)

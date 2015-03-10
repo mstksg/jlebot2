@@ -57,7 +57,7 @@ hasGreeting (words -> strwords) =
 greetings :: String -> [[String]]
 greetings nick = (map . map) f glist
   where
-    f str = let (x,y) = break (== '%') str
+    f str = let (x, y) = break (== '%') str
             in  x ++ nick ++ drop 1 y
     glist = [ [ "hi %"
               , "sup %"

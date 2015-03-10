@@ -10,15 +10,16 @@ import Control.Auto.Collection
 import Control.Auto.Interval
 import Control.Auto.Serialize
 import Control.Monad             (mfilter)
+import Data.Foldable (sum)
 import Control.Monad.IO.Class
 import Control.Monad.Loops
 import Control.Monad.Random
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.State
-import Data.List
+import Data.List hiding (sum)
 import Data.Map.Strict           (Map)
 import Instances                 ()
-import Prelude hiding            ((.), id)
+import Prelude hiding            ((.), id, sum)
 import Util
 import qualified Data.Map.Strict as M
 
@@ -28,25 +29,35 @@ memory :: Int
 memory = 5
 
 minLength :: Int
-minLength = 10
+minLength = 15
 
 maxTries :: Int
-maxTries = 50
+maxTries = 20
 
 markovBot :: MonadIO m => FilePath -> StdGen -> ChatBotRoom m
 markovBot fp = sealRandom markovBotRandom
   where
+    nfp = fp
+    rfp = fp ++ "-rooms"
     markovBotRandom :: MonadIO m => ChatBotRoom (RandT StdGen m)
-    markovBotRandom = proc (InMessage nick msg _ _) -> do
+    markovBotRandom = proc (InMessage nick msg room _) -> do
       -- serializing the map alone instead of the whole structure, in case
       -- we want to modify markovBot and don't want to lose the history
-      trainings <- serializing' fp $ gather (const train) -< (nick, msg)
+      nickTrain <- serializing' nfp (gather (const train)) -< (nick, msg)
+      roomTrain <- serializing' rfp (gather (const train)) -< (room, msg)
 
       queryBlip <- emitJusts markovCommand -< msg
 
-      let queryMap :: Nick -> (Maybe Training, Nick)
-          queryMap qry = ( mfilter (not . M.null) (M.lookup qry trainings)
-                         , qry)
+      let queryMap :: Maybe Nick -> (Maybe Training, Nick)
+          -- markov for single user
+          queryMap (Just qry) =
+              ( mfilter (not . M.null) (M.lookup qry nickTrain)
+              , qry )
+          -- markov for global database
+          queryMap Nothing    =
+              ( mfilter (not . M.null) (M.lookup room roomTrain)
+              , room )
+
 
       perBlip lookupResult -< queryMap <$> queryBlip
 
@@ -58,7 +69,9 @@ markovBot fp = sealRandom markovBotRandom
           where
             pairs = [ (s, M.singleton c 1) | (s, c) <- pairsToAdd message ]
             scoresMap = M.fromListWith squishMaps pairs
-        squishMaps = M.unionWith (+)
+
+    squishMaps :: (Num a, Ord k) => Map k a -> Map k a -> Map k a
+    squishMaps = M.unionWith (+)
 
     lookupResult :: Monad m
                  => Auto (RandT StdGen m) (Maybe Training, Nick) [Message]
@@ -68,15 +81,17 @@ markovBot fp = sealRandom markovBotRandom
             id -< ["No data found for " ++ nick ++ "."]
           Just tr -> do
             result <- arrM (genMarkovN minLength) -< tr
-            id -< [result]
+            id -< ["<" ++ nick ++ "> " ++ result]
 
 
 
-    
-markovCommand :: Message -> Maybe Nick
+-- Just (Just nick) is a command for a single user, Just Nothing is
+-- a command for the global database
+markovCommand :: Message -> Maybe (Maybe Nick)
 markovCommand message = case words message of
-                          "@markov":nick:_      -> Just nick
-                          "@impersonate":nick:_ -> Just nick
+                          "@markov":nick:_      -> Just (Just nick)
+                          "@impersonate":nick:_ -> Just (Just nick)
+                          ["@markov"]           -> Just Nothing
                           _                     -> Nothing
 
 pairsToAdd :: String -> [(String, Char)]

@@ -9,6 +9,10 @@ instance Serialize UTCTime where
     get = read <$> get
     put = put . show
 
+instance Serialize Day where
+    get = read <$> get
+    put = put . show
+
 instance Serialize StdGen where
     get = read <$> get
     put = put . show
