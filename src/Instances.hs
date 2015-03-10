@@ -2,8 +2,10 @@ module Instances where
 
 import Control.Applicative
 import Data.Serialize
-import System.Random
+import Data.Text
+import Data.Text.Encoding
 import Data.Time
+import System.Random
 
 instance Serialize UTCTime where
     get = read <$> get
@@ -16,3 +18,7 @@ instance Serialize Day where
 instance Serialize StdGen where
     get = read <$> get
     put = put . show
+
+instance Serialize Text where
+    get = decodeUtf8 <$> get
+    put = put . encodeUtf8

@@ -36,7 +36,7 @@ main = do
                          1000000
                          (chatbot' "irc")
       -- "test":_ -> putStrLn =<< getLatest testFeed
-      "test":_ -> print =<< getPushes (Repo "mstksg" "auto") 595524856
+      "test":_ -> print =<< getPushes (Repo "mstksg" "auto") (595524856, mempty)
       _       -> stdinLoopChron "justin"
                                 "#stdin"
                                 1000000
