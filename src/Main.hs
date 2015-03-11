@@ -44,10 +44,10 @@ main = do
 
 chatbot :: StdGen -> FilePath -> ChatBot IO
 chatbot g rt = mconcat [ "karma"  <~ fromRoom karmaBot
-                       -- , "bet"    <~ fromRoom betBot
                        , "greet"  <~ fromRoom (greetBot g)
                        , fromRoom (markovBot (pth "markov") g)
                        , fromChron (githubBot (pth "github"))
+                       -- , "bet"    <~ fromRoom betBot
                        ]
   where
     pth ext = saveFolder </> (rt ++ "-" ++ ext)

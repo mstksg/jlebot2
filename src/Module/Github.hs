@@ -87,17 +87,17 @@ githubBot srlzFp = foldMap (uncurry (githubBotRepo srlzFp)) repos
 githubBotRepo :: (MonadFix m, MonadIO m)
               => FilePath -> Repo -> [Channel] -> ChatBotChron m
 githubBotRepo srlzFp repo dests = serializing' srlzFp' $ proc time -> do
-    rec lastPushId <- holdWith 0 . accumB max 0 . lagBlips -< lastIdBlip
-        lastETag   <- holdWith ""               . lagBlips -< lastETagBlip
+    rec latestPushId <- holdWith 0 . accumB max 0 . lagBlips -< latestIdBlip
+        latestETag   <- holdWith ""               . lagBlips -< latestETagBlip
 
         readyBlip <- onChange -< round (utctDayTime time) `div` updateDelay
 
-        let newRequest = (lastPushId, lastETag) <$ readyBlip
-        newPushes <- perBlip (arrM (liftIO . getPushes repo)) -< (lastPushId, lastETag) <$ newSecond
+        let newRequest = (latestPushId, latestETag) <$ readyBlip
+        newPushes <- perBlip (arrM (liftIO . getPushes repo)) -< newRequest
         pushBlip <- filterB (not . null . fst) -< newPushes
 
-        let lastIdBlip = maximum . map pushId . fst <$> pushBlip
-            lastETagBlip = snd <$> newPushes
+        let latestIdBlip = maximum . map pushId . fst <$> pushBlip
+            latestETagBlip = snd <$> newPushes
 
     let msgsBlip   = mkMessages . reverse . take maxUpdates . fst <$> pushBlip
         msgMapBlip = OutMessages . M.fromList
@@ -134,8 +134,8 @@ githubBotRepo srlzFp repo dests = serializing' srlzFp' $ proc time -> do
                          | otherwise = take maxCommits xs ++ ["... and more ..."]
             commitLine c = "\x02" ++ pushRepo p ++ "\x0f"
                         ++ "/" ++ pushBranch p ++ " "
-                        ++ take 7 (commitSHA c)
-                        ++ " \x02" ++ commitAuthor c ++ "\x0f: "
+                        ++ "[" ++ take 7 (commitSHA c) ++ "] "
+                        ++ "\x02" ++ commitAuthor c ++ "\x0f: "
                         ++ (limitMessage . concat . take 1 . lines $ commitMessage c)
                         ++ " (\x1f" ++ commitUrl c ++ "\x0f)"
             limitMessage msg | length msg <= messageLimit = msg
@@ -143,12 +143,12 @@ githubBotRepo srlzFp repo dests = serializing' srlzFp' $ proc time -> do
 
 
 getPushes :: Repo -> (Integer, ETag) -> IO ([Push], ETag)
-getPushes (Repo rowner rname) (limit, lastETag) = do
+getPushes (Repo rowner rname) (limit, latestETag) = do
     log' $ "Fetching repo " ++ rowner ++ "/" ++ rname
     let reqUrl = "https://api.github.com/repos/"
                <> rowner <> "/"
                <> rname <> "/events"
-        opts = defaults & header "If-None-Match" .~ [ lastETag ]
+        opts = defaults & header "If-None-Match" .~ [ latestETag ]
 
     result <- handle handler . S.withSession $ \sess -> do
       r <- S.getWith opts sess reqUrl
@@ -203,7 +203,7 @@ getPushes (Repo rowner rname) (limit, lastETag) = do
     handler :: C.HttpException -> IO ([Push], ETag)
     handler e = case e of
                   C.StatusCodeException s _ _
-                      | s ^. statusCode == 304 -> return ([], lastETag)
+                      | s ^. statusCode == 304 -> return ([], latestETag)
                   _ -> ([],"") <$ print e
 
 _iso8601 :: (Show a, ParseTime a) => Prism' String a
