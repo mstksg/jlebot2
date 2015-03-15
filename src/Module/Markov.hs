@@ -10,16 +10,17 @@ import Control.Auto.Collection
 import Control.Auto.Interval
 import Control.Auto.Serialize
 import Control.Monad             (mfilter)
-import Data.Foldable (sum)
 import Control.Monad.IO.Class
 import Control.Monad.Loops
 import Control.Monad.Random
 import Control.Monad.Trans.Class
 import Control.Monad.Trans.State
-import Data.List hiding (sum)
+import Data.List hiding          (sum)
 import Data.Map.Strict           (Map)
+import Data.Maybe
 import Instances                 ()
 import Prelude hiding            ((.), id, sum)
+import Text.Read                 (readMaybe)
 import Util
 import qualified Data.Map.Strict as M
 
@@ -32,7 +33,7 @@ minLength :: Int
 minLength = 15
 
 maxTries :: Int
-maxTries = 20
+maxTries = 1000
 
 markovBot :: MonadIO m => FilePath -> StdGen -> ChatBotRoom m
 markovBot fp = sealRandom markovBotRandom
@@ -46,6 +47,9 @@ markovBot fp = sealRandom markovBotRandom
       nickTrain <- serializing' nfp (gather (const train)) -< (nick, msg)
       roomTrain <- serializing' rfp (gather (const train)) -< (room, msg)
 
+      -- queryBlip :: Blip (Maybe Nick, Maybe Int)
+      -- if the first field is Nothing, then ask for the room.
+      -- the second field specifies a "minimum length"
       queryBlip <- emitJusts markovCommand -< msg
 
       let queryMap :: Maybe Nick -> (Maybe Training, Nick)
@@ -59,7 +63,7 @@ markovBot fp = sealRandom markovBotRandom
               , room )
 
 
-      perBlip lookupResult -< queryMap <$> queryBlip
+      perBlip lookupResult -< first queryMap <$> queryBlip
 
     train :: Monad m
           => Interval m Message Training
@@ -74,25 +78,34 @@ markovBot fp = sealRandom markovBotRandom
     squishMaps = M.unionWith (+)
 
     lookupResult :: Monad m
-                 => Auto (RandT StdGen m) (Maybe Training, Nick) [Message]
-    lookupResult = proc (training, nick) ->
+                 => Auto (RandT StdGen m)
+                         ((Maybe Training, Nick), Maybe Int)
+                         [Message]
+    lookupResult = proc ((training, nick), minL) -> do
+        let minLength' = fromMaybe minLength minL
         case training of
           Nothing ->
             id -< ["No data found for " ++ nick ++ "."]
           Just tr -> do
-            result <- arrM (genMarkovN minLength) -< tr
+            result <- arrM (uncurry genMarkovN) -< (minLength', tr)
             id -< ["<" ++ nick ++ "> " ++ result]
 
 
 
--- Just (Just nick) is a command for a single user, Just Nothing is
--- a command for the global database
-markovCommand :: Message -> Maybe (Maybe Nick)
-markovCommand message = case words message of
-                          "@markov":nick:_      -> Just (Just nick)
-                          "@impersonate":nick:_ -> Just (Just nick)
-                          ["@markov"]           -> Just Nothing
-                          _                     -> Nothing
+-- Filter and parse a command.  The first field is a Maybe user; Nothing
+-- means a request for the room.  The second field is the minimum character
+-- length.
+markovCommand :: Message -> Maybe (Maybe Nick, Maybe Int)
+markovCommand message =
+    case words message of
+      "@markov":i:_           | isJust (readMaybe i :: Maybe Int)
+                                    -> Just (Nothing, readMaybe i)
+      ["@markov"]             -> Just (Nothing, Nothing)
+      ["@markov",nick]        -> Just (Just nick, Nothing)
+      ["@impersonate",nick]   -> Just (Just nick, Nothing)
+      "@markov":nick:i:_      -> Just (Just nick, readMaybe i)
+      "@impersonate":nick:i:_ -> Just (Just nick, readMaybe i)
+      _                       -> Nothing
 
 pairsToAdd :: String -> [(String, Char)]
 pairsToAdd ('@':_)     = []
