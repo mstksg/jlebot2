@@ -20,10 +20,10 @@ executable jlebot2
   main-is:             Main.hs
   -- other-modules:       
   -- other-extensions:    
-  build-depends:       base >=4.7 && <4.8
+  build-depends:       base >=4.7 && <5
                      , HTTP
                      , MonadRandom
-                     , auto
+                     , auto >=0.4.1
                      , auto-chatbot
                      , cereal
                      , containers

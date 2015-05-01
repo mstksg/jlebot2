@@ -40,7 +40,7 @@ markovBot fp = sealRandom markovBotRandom
   where
     nfp = fp
     rfp = fp ++ "-rooms"
-    markovBotRandom :: MonadIO m => ChatBotRoom (RandT StdGen m)
+    markovBotRandom :: (MonadIO m, MonadRandom m) => ChatBotRoom m
     markovBotRandom = proc (InMessage nick msg room _) -> do
       -- serializing the map alone instead of the whole structure, in case
       -- we want to modify markovBot and don't want to lose the history
@@ -77,8 +77,8 @@ markovBot fp = sealRandom markovBotRandom
     squishMaps :: (Num a, Ord k) => Map k a -> Map k a -> Map k a
     squishMaps = M.unionWith (+)
 
-    lookupResult :: Monad m
-                 => Auto (RandT StdGen m)
+    lookupResult :: MonadRandom m
+                 => Auto m
                          ((Maybe Training, Nick), Maybe Int)
                          [Message]
     lookupResult = proc ((training, nick), minL) -> do
@@ -120,7 +120,7 @@ pairsToAdd xs          = map pullLast . transpose
       pullLast (y:ys) = (reverse ys, y)
       dropchain ys    = map (`drop` ys) [0..memory]
 
-genMarkovN :: Monad m => Int -> Training -> RandT StdGen m String
+genMarkovN :: MonadRandom m => Int -> Training -> m String
 genMarkovN i m = go maxTries
   where
     go 0 = genMarkov m
@@ -130,10 +130,10 @@ genMarkovN i m = go maxTries
         then return mkv
         else go (n-1)
 
-genMarkov :: Monad m => Training -> RandT StdGen m String
+genMarkov :: MonadRandom m => Training -> m String
 genMarkov m = evalStateT (unfoldM go) ""
   where
-    go :: Monad m => StateT String (RandT StdGen m) (Maybe Char)
+    go :: MonadRandom m => StateT String m (Maybe Char)
     go = do
       options <- gets (\s -> M.findWithDefault M.empty s m)
       let ml = M.toList options

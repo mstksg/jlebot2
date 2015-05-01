@@ -1,6 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE Arrows #-}
 
+-- | TODO: This module gave a `fromJust` error the other day.  why?
+
 module Module.Github where
 
 import Auto.Chatbot
@@ -77,6 +79,7 @@ messageLimit = 250
 repos :: [(Repo, [Channel])]
 repos = [ (Repo "mstksg" "auto"         , ["#haskell-auto"])
         , (Repo "mstksg" "auto-examples", ["#haskell-auto"])
+        , (Repo "mstksg" "auto-frp"     , ["#haskell-auto"])
         , (Repo "mstksg" "auto-chatbot" , ["#haskell-auto"])
         , (Repo "mstksg" "jlebot2"      , ["#haskell-auto"])
         ]

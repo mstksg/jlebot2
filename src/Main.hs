@@ -10,8 +10,10 @@ import Control.Auto.Serialize
 import Data.Monoid
 import Module.Github
 import Module.Greet
+import Module.Hooks
 import Module.Karma
 import Module.Markov
+import Module.Zzz
 import System.Directory
 import System.Environment
 import System.FilePath
@@ -33,7 +35,7 @@ main = do
                          "jlebot2"
                          channels
                          True
-                         1000000
+                         2000000
                          (chatbot' "irc")
       -- "test":_ -> putStrLn =<< getLatest testFeed
       "test":_ -> print =<< getPushes (Repo "mstksg" "auto") (595524856, mempty)
@@ -45,7 +47,9 @@ main = do
 chatbot :: StdGen -> FilePath -> ChatBot IO
 chatbot g rt = mconcat [ "karma"  <~ fromRoom karmaBot
                        , "greet"  <~ fromRoom (greetBot g)
+                       , "zzz"    <~ fromRoom (zzzBot g)
                        , fromRoom (markovBot (pth "markov") g)
+                       , fromRoom (hookBot g)
                        , fromChron (githubBot (pth "github"))
                        -- , "bet"    <~ fromRoom betBot
                        ]

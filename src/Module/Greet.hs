@@ -20,7 +20,7 @@ memory = 30 * (24 * 60 * 60)
 greetBot :: Monad m => StdGen -> ChatBotRoom m
 greetBot = sealRandom greetBotRandom
   where
-    greetBotRandom :: Monad m => ChatBotRoom (RandT StdGen m)
+    greetBotRandom :: MonadRandom m => ChatBotRoom m
     greetBotRandom = proc (InMessage nick msg _ time) -> do
       greetBlip <- emitOn isGreeting -< msg
       perBlip (mux individualGreetBot) -< (nick, time) <$ greetBlip
@@ -28,9 +28,9 @@ greetBot = sealRandom greetBotRandom
     isGreeting :: Message -> Bool
     isGreeting str = "jlebot" `isInfixOf` str && hasGreeting str
 
-    individualGreetBot :: Monad m
+    individualGreetBot :: MonadRandom m
                        => Nick
-                       -> Auto (RandT StdGen m) UTCTime [Message]
+                       -> Auto m UTCTime [Message]
     individualGreetBot nick = proc time -> do
         history <- accum addHistory [] -< time
         let greetingClass = min 3 (length history `div` 3)
