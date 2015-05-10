@@ -20,14 +20,6 @@ hookBot = sealRandomStd (modifyBlips (:[]) . onJusts . arrM f)
 
 uHooks :: Map (Nick, Message) [Message]
 uHooks = M.fromList [ (("mike_pizza","cerealbot: beer++"), ["bro"])
-                    -- ---  all this stuff moved to the Zzz module
-                    -- , (("jle`","zzz"), [ "...did you expect me to tuck you in or something"
-                    --                    , "good night oh captain my captain"
-                    --                    , "chú ơi chú ngủ ngon nhé"
-                    --                    , "zzz"
-                    --                    ]
-                    --   )
-                    -- , (("rray","zzz"), ["rray: zzz"])
                     ]
 
 

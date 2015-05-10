@@ -24,7 +24,7 @@ import Data.Traversable               (forM)
 import Instances                      ()
 import Network.Wreq
 import Prelude hiding                 ((.), id)
-import System.Locale
+import System.Locale hiding           (iso8601DateFormat, defaultTimeLocale)
 import qualified Data.Map             as M
 import qualified Data.Text            as T
 import qualified Data.Text.Encoding   as T
@@ -142,7 +142,7 @@ githubBotRepo srlzFp repo dests = serializing' srlzFp' $ proc time -> do
                         ++ (limitMessage . concat . take 1 . lines $ commitMessage c)
                         ++ " (\x1f" ++ commitUrl c ++ "\x0f)"
             limitMessage msg | length msg <= messageLimit = msg
-                             | otherwise = take messageLimit msg ++ "..."
+                             | otherwise = take messageLimit msg ++ "..." :: String
 
 
 getPushes :: Repo -> (Integer, ETag) -> IO ([Push], ETag)
